@@ -523,9 +523,6 @@ class PiGarageAlert(object):
             # time.time() of the last time the garage door changed state
             time_of_last_state_change = dict()
 
-            # Index of the next alert to send for each garage door
-            alert_states = dict()
-
             # Create alert sending objects
             alert_senders = {
                 "Jabber": Jabber(door_states, time_of_last_state_change),
@@ -541,7 +538,6 @@ class PiGarageAlert(object):
 
                 door_states[name] = state
                 time_of_last_state_change[name] = time.time()
-                alert_states[name] = 0
 
                 self.logger.info("Initial state of \"%s\" is %s", name, state)
 
@@ -559,32 +555,38 @@ class PiGarageAlert(object):
                         self.logger.info("State of \"%s\" changed to %s after %.0f sec", name, state, time_in_state)
 
                         # Reset alert when door changes state
-                        if alert_states[name] > 0:
-                            # Use the recipients of the last alert
-                            recipients = door['alerts'][alert_states[name] - 1]['recipients']
-                            send_alerts(self.logger, alert_senders, recipients, name, "%s is now %s" % (name, state))
-                            alert_states[name] = 0
+                        #if alert_states[name] > 0:
+                        #    # Use the recipients of the last alert
+                        #    recipients = door['alerts'][alert_states[name] - 1]['recipients']
+                        #    send_alerts(self.logger, alert_senders, recipients, name, "%s is now %s" % (name, state))
+                        #    alert_states[name] = 0
 
                         # Reset time_in_state
                         time_in_state = 0
 
-                    # See if there are more alerts
-                    if len(door['alerts']) > alert_states[name]:
-                        # Get info about alert
-                        alert = door['alerts'][alert_states[name]]
+                    alerts = door['alerts']
 
-                        # Has the time elapsed and is this the state to trigger the alert?
-                        if time_in_state > alert['time'] and state == alert['state']:
-                            send_alerts(self.logger, alert_senders, alert['recipients'], name, "%s has been %s for %d seconds!" % (name, state, time_in_state))
-                            alert_states[name] += 1
+                    for alert in alerts:
+                        # has the time elapsed and is this state able to trigger the alert
+                        if state == alert['state'] and 
+                           time_in_state >= alert['duration'] and
+                           time.strftime('%A').lower() == alert['day_of_week'].lower():
+                           
+                            current_time = time.strptime(time.strftime('%H:%M'))
+                            enabled_time = time.strptime(alert['enabled_time'])
+                            disabled_time = time.strptime(alert['disabled_time'])
 
+                            if current_time >= enabled_time and
+                               current_time < disabled_time:
+                                send_alerts(self.logger, alert_senders, alert['recipients'], name, "%s has been %s for %d seconds!" % (name, state, time_in_state))
+                        
                 # Periodically log the status for debug and ensuring RPi doesn't get too hot
                 status_report_countdown -= 1
                 if status_report_countdown <= 0:
                     status_msg = rpi_status()
 
                     for name in door_states:
-                        status_msg += ", %s: %s/%d/%d" % (name, door_states[name], alert_states[name], (time.time() - time_of_last_state_change[name]))
+                        status_msg += ", %s: %s/%d" % (name, door_states[name], (time.time() - time_of_last_state_change[name]))
 
                     self.logger.info(status_msg)
 
