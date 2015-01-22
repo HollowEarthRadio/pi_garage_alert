@@ -12,11 +12,11 @@ GARAGE_DOORS = [
         'alerts': [
             {
                 'state': 'open',
-                'duration' : '240',
-                'day_of_week' : 'monday'
-                'enabled_time' : '02:00',
-                'disabled_time' : '08:00'
-                'recipients': [ 'sms:+11112223333', 'email:someone@example.com', 'twitter_dm:twitter_user', 'tweet' ]
+                'duration' : 6,
+                'day_of_week' : 'wednesday',
+                'enabled_time' : '20:00',
+                'disabled_time' : '23:59',
+                'recipients': [ 'email:btpnlsl@gmail.com' ]
             }
         ]
     }

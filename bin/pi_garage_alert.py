@@ -523,6 +523,9 @@ class PiGarageAlert(object):
             # time.time() of the last time the garage door changed state
             time_of_last_state_change = dict()
 
+            # has an alert been sent for this alert state
+	    alert_states = dict()
+
             # Create alert sending objects
             alert_senders = {
                 "Jabber": Jabber(door_states, time_of_last_state_change),
@@ -531,6 +534,9 @@ class PiGarageAlert(object):
                 "Email": Email()
             }
 
+            # format for time of day entries
+            time_of_day_format = '%H:%M'
+
             # Read initial states
             for door in cfg.GARAGE_DOORS:
                 name = door['name']
@@ -538,6 +544,7 @@ class PiGarageAlert(object):
 
                 door_states[name] = state
                 time_of_last_state_change[name] = time.time()
+                alert_states[name] = 0
 
                 self.logger.info("Initial state of \"%s\" is %s", name, state)
 
@@ -555,11 +562,11 @@ class PiGarageAlert(object):
                         self.logger.info("State of \"%s\" changed to %s after %.0f sec", name, state, time_in_state)
 
                         # Reset alert when door changes state
-                        #if alert_states[name] > 0:
+                        if alert_states[name] > 0:
                         #    # Use the recipients of the last alert
                         #    recipients = door['alerts'][alert_states[name] - 1]['recipients']
                         #    send_alerts(self.logger, alert_senders, recipients, name, "%s is now %s" % (name, state))
-                        #    alert_states[name] = 0
+                            alert_states[name] = 0
 
                         # Reset time_in_state
                         time_in_state = 0
@@ -567,19 +574,24 @@ class PiGarageAlert(object):
                     alerts = door['alerts']
 
                     for alert in alerts:
-                        # has the time elapsed and is this state able to trigger the alert
-                        if state == alert['state'] and 
-                           time_in_state >= alert['duration'] and
-                           time.strftime('%A').lower() == alert['day_of_week'].lower():
-                           
-                            current_time = time.strptime(time.strftime('%H:%M'))
-                            enabled_time = time.strptime(alert['enabled_time'])
-                            disabled_time = time.strptime(alert['disabled_time'])
+                        self.logger.info("state %s, time %d, day %s", alert['state'], time_in_state, time.strftime('%A').lower())
 
-                            if current_time >= enabled_time and
-                               current_time < disabled_time:
-                                send_alerts(self.logger, alert_senders, alert['recipients'], name, "%s has been %s for %d seconds!" % (name, state, time_in_state))
-                        
+                        # has the time elapsed and is this state able to trigger the alert
+                        if state == alert['state'] and time_in_state >= alert['duration'] and time.strftime('%A').lower() == alert['day_of_week'].lower():
+                            current_time = time.strptime(time.strftime(time_of_day_format), time_of_day_format)
+                            enabled_time = time.strptime(alert['enabled_time'], time_of_day_format)
+                            disabled_time = time.strptime(alert['disabled_time'], time_of_day_format)
+
+                            self.logger.info("current %s, enabled %s, disabled %s", current_time, enabled_time, disabled_time)
+
+                            if current_time >= enabled_time and current_time < disabled_time:
+                                if alert_states[name] == 0:
+                                    send_alerts(self.logger, alert_senders, alert['recipients'], name, "%s has been %s for %d seconds!" % (name, state, time_in_state))
+                                    alert_states[name] = 1
+
+                            else:
+                                alert_states[name] = 0
+
                 # Periodically log the status for debug and ensuring RPi doesn't get too hot
                 status_report_countdown -= 1
                 if status_report_countdown <= 0:
