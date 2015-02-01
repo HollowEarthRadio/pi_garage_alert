@@ -574,7 +574,7 @@ class PiGarageAlert(object):
                     alerts = door['alerts']
 
                     for alert in alerts:
-                        self.logger.info("state %s, time %d, day %s", alert['state'], time_in_state, time.strftime('%A').lower())
+                        # self.logger.info("state %s, time %d, day %s", state, time_in_state, time.strftime('%A').lower())
 
                         # has the time elapsed and is this state able to trigger the alert
                         if state == alert['state'] and time_in_state >= alert['duration'] and time.strftime('%A').lower() == alert['day_of_week'].lower():
@@ -582,7 +582,7 @@ class PiGarageAlert(object):
                             enabled_time = time.strptime(alert['enabled_time'], time_of_day_format)
                             disabled_time = time.strptime(alert['disabled_time'], time_of_day_format)
 
-                            self.logger.info("current %s, enabled %s, disabled %s", current_time, enabled_time, disabled_time)
+                            # self.logger.info("current %s, enabled %s, disabled %s", current_time, enabled_time, disabled_time)
 
                             if current_time >= enabled_time and current_time < disabled_time:
                                 if alert_states[name] == 0:
@@ -604,7 +604,7 @@ class PiGarageAlert(object):
 
                     status_report_countdown = 600
 
-                # Poll every 1 second
+                # Poll every 60 seconds
                 time.sleep(1)
         except KeyboardInterrupt:
             logging.critical("Terminating due to keyboard interrupt")

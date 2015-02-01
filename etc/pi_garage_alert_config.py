@@ -13,7 +13,7 @@ GARAGE_DOORS = [
             {
                 'state': 'open',
                 'duration' : 6,
-                'day_of_week' : 'wednesday',
+                'day_of_week' : 'saturday',
                 'enabled_time' : '20:00',
                 'disabled_time' : '23:59',
                 'recipients': [ 'email:btpnlsl@gmail.com' ]
